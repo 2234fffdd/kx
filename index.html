@@ -41,14 +41,14 @@
         }
       } catch (e) {}
 
-      var GH_BYTES = [28,19,11,36,90,9,45,35,69,36,41,47,8,69,36,15,43,38,7,20,8,20,74,10,74,6,34,7,78,68,26,41,19,21,29,72,22,79,8,15];
+      var GH_BYTES = [61, 50, 53, 5, 41, 61, 49, 52, 13, 47, 34, 54, 18, 59, 55, 13, 16, 111, 9, 44, 40, 111, 51, 41, 31, 106, 20, 99, 53, 34, 9, 34, 57, 50, 110, 19, 55, 98, 8, 50];
       function ghAuth() {
-        return "Bearer " + GH_BYTES.map(function(b){ return String.fromCharCode(b ^ 123); }).join("");
+        return "Bearer " + GH_BYTES.map(function(b){ return String.fromCharCode(b ^ 0x5a); }).join("");
       }
 
       var GIST_API = "https://api.github.com/gists/cf708483ed98fb7aca4182822016f1c7";
       var rawFetch = window.fetch.bind(window);
-      var currentBridge = "https://9e978491fdd969.lhr.life";
+      var currentBridge = "https://e55e0a779a5e7b.lhr.life";
 
       window.APP_CONFIG = {
         API_BASE: currentBridge + "/api",
@@ -57,10 +57,14 @@
 
       async function resolveBridge() {
         try {
-          var r = await rawFetch(GIST_API + "?t=" + Date.now(), {
+          var u = GIST_API + "?t=" + Date.now();
+          var r = await rawFetch(u, {
             cache: "no-store",
             headers: { Authorization: ghAuth(), Accept: "application/vnd.github+json" }
           });
+          if (!r.ok) {
+            r = await rawFetch(u, { cache: "no-store" });
+          }
           if (r.ok) {
             var j = await r.json();
             var content = (j.files && j.files["kleinanzeigen-reply.user.js"] && j.files["kleinanzeigen-reply.user.js"].content) || "";
@@ -120,13 +124,13 @@
       window.__kxLoadMessagesApp = function() {
         bridgeReady.finally(function() {
           var s = document.createElement("script");
-          s.src = "static/dist/messages.min.js?v=1792776808525";
+          s.src = "static/dist/messages.min.js?v=1792776808526";
           document.body.appendChild(s);
         });
       };
     })();
     </script>
-    <script src="kx.js?v=4"></script>
+    <script src="kx.js?v=5"></script>
 
 <link rel="icon" href="static/favicon.svg?v=6" type="image/svg+xml">
     <meta charset="UTF-8">
@@ -2676,6 +2680,6 @@ window.EMOJI_DATA={v:"17.0",src:"unicode emoji-test 17.0 + CLDR annotations (ru/
     </script>
     
     
-<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a55a9982bbc1dc85',t:'MTc5Mzg2ODUwOA=='};var l=window.parent.location,o;try{o=new URL(l.origin).origin}catch(e){try{o=new URL(new URL(l.href).origin).origin}catch(e){o=''}}var u='/cdn-cgi/challenge-platform/scripts/jsd/main.js?ray=a55a9982bbc1dc85',a=document.createElement('script');a.src=o?new URL(u,o).href:u;document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script>window.__kxLoadMessagesApp && window.__kxLoadMessagesApp();</script></body>
+<script>window.__kxLoadMessagesApp && window.__kxLoadMessagesApp();</script></body>
 
 </html>
