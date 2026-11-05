@@ -1,0 +1,15 @@
+{
+  "name": "Credixis AI",
+  "short_name": "Credixis AI",
+  "start_url": "/kx/",
+  "display": "standalone",
+  "background_color": "#13151a",
+  "theme_color": "#4A3D7D",
+  "icons": [
+    {
+      "src": "https://credixis-app.com/static/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}
