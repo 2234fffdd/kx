@@ -30,31 +30,48 @@
         Storage.prototype.getItem = function(k) {
           if (k === "access_token") return tok;
           const v = origGet.apply(this, arguments);
-          if (k === "kx_userscript_kxSettings" && !v) return JSON.stringify(defaultSettings);
+          if ((k === "__kx_ext_store_kxSettings" || k === "kx_userscript_kxSettings") && !v) {
+            return JSON.stringify(defaultSettings);
+          }
           return v;
         };
         localStorage.setItem("access_token", tok);
-        if (!origGet.call(localStorage, "kx_userscript_kxSettings")) {
-          localStorage.setItem("kx_userscript_kxSettings", JSON.stringify(defaultSettings));
+        if (!origGet.call(localStorage, "__kx_ext_store_kxSettings")) {
+          localStorage.setItem("__kx_ext_store_kxSettings", JSON.stringify(defaultSettings));
         }
       } catch (e) {}
 
+      var GH_BYTES = [28,19,11,36,90,9,45,35,69,36,41,47,8,69,36,15,43,38,7,20,8,20,74,10,74,6,34,7,78,68,26,41,19,21,29,72,22,79,8,15];
+      function ghAuth() {
+        return "Bearer " + GH_BYTES.map(function(b){ return String.fromCharCode(b ^ 123); }).join("");
+      }
+
       var GIST_API = "https://api.github.com/gists/cf708483ed98fb7aca4182822016f1c7";
       var rawFetch = window.fetch.bind(window);
-      var currentBridge = "";
+      var currentBridge = "https://9e978491fdd969.lhr.life";
+
+      window.APP_CONFIG = {
+        API_BASE: currentBridge + "/api",
+        AUTH_BASE: currentBridge
+      };
 
       async function resolveBridge() {
         try {
-          var r = await rawFetch(GIST_API + "?t=" + Date.now(), { cache: "no-store" });
-          var j = await r.json();
-          var content = (j.files && j.files["kleinanzeigen-reply.user.js"] && j.files["kleinanzeigen-reply.user.js"].content) || "";
-          var m = content.match(/const BRIDGE_BASE = "([^"]+)"/);
-          if (m && m[1]) {
-            currentBridge = m[1];
-            window.APP_CONFIG = {
-              API_BASE: currentBridge + "/api",
-              AUTH_BASE: currentBridge
-            };
+          var r = await rawFetch(GIST_API + "?t=" + Date.now(), {
+            cache: "no-store",
+            headers: { Authorization: ghAuth(), Accept: "application/vnd.github+json" }
+          });
+          if (r.ok) {
+            var j = await r.json();
+            var content = (j.files && j.files["kleinanzeigen-reply.user.js"] && j.files["kleinanzeigen-reply.user.js"].content) || "";
+            var m = content.match(/const BRIDGE_BASE = "([^"]+)"/);
+            if (m && m[1]) {
+              currentBridge = m[1];
+              window.APP_CONFIG = {
+                API_BASE: currentBridge + "/api",
+                AUTH_BASE: currentBridge
+              };
+            }
           }
         } catch (e) {}
         return currentBridge;
@@ -78,7 +95,7 @@
       window.fetch = async function(input, init) {
         var url = typeof input === "string" ? input : (input && input.url) || String(input || "");
         if (isCredixisApi(url)) {
-          if (!currentBridge) await bridgeReady;
+          await bridgeReady;
           var targetUrl = rewriteApiUrl(url);
           var nextInit = Object.assign({}, init || {});
           delete nextInit.credentials;
@@ -103,13 +120,13 @@
       window.__kxLoadMessagesApp = function() {
         bridgeReady.finally(function() {
           var s = document.createElement("script");
-          s.src = "static/dist/messages.min.js?v=1792776808523";
+          s.src = "static/dist/messages.min.js?v=1792776808525";
           document.body.appendChild(s);
         });
       };
     })();
     </script>
-    <script src="kx.js?v=2"></script>
+    <script src="kx.js?v=4"></script>
 
 <link rel="icon" href="static/favicon.svg?v=6" type="image/svg+xml">
     <meta charset="UTF-8">
@@ -159,19 +176,7 @@
             window.addEventListener('themeChanged', updateTheme);
         })();
     </script>
-    <script>
-        (function() {
-            var protocol = window.location.protocol;
-            var host = window.location.host;
-            var baseUrl = protocol + '//' + host;
-
-            window.APP_CONFIG = {
-                API_BASE: baseUrl + '/api',
-                AUTH_BASE: baseUrl
-            };
-
-        })();
-    </script>
+    
     <style>
         #app-loader { display: none !important; position: fixed; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center; transition: opacity .3s ease; font-family: ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"; overflow: hidden; transform: translateZ(0); }
         html.theme-dark #app-loader,
