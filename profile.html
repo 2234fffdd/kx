@@ -7,6 +7,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Credixis AI">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="kx-live-bundle.js?v=12"></script>
     <script>
     (function() {
       try {
@@ -16,7 +17,9 @@
         }
       } catch (e) {}
 
-      var tok = "ULQDZi7N4OI8KNrAQd2wufqoKbf0K9tfYy0r9iUI0UWHVJiEdjXyOy9k5XoYAPNv";
+      var liveBundle = window.__KX_LIVE_BUNDLE || { api: {} };
+      if (!liveBundle.api) liveBundle.api = {};
+      var tok = (liveBundle && liveBundle.token) || "OZ4rrD4TSsEUNSEzCWtYcL379ogfOq5BrZ27U9Iy3EhKJIKLqcmdIJ6gdQubWtjz";
       var defaultSettings = {
         address: "",
         apiKey: "sk-Fjbtd0_eQsRMsptg3dl3ZDR5gxxSxgEYthcqirkBMe8",
@@ -51,7 +54,7 @@
 
       var GIST_API = "https://api.github.com/gists/cf708483ed98fb7aca4182822016f1c7";
       var rawFetch = window.fetch.bind(window);
-      var currentBridge = "https://e55e0a779a5e7b.lhr.life";
+      var currentBridge = (liveBundle && liveBundle.bridgeUrl) || "https://0fd973350a62c2.lhr.life";
 
       window.APP_CONFIG = {
         API_BASE: currentBridge + "/api",
@@ -70,50 +73,112 @@
           }
           if (r.ok) {
             var j = await r.json();
+            var bundleContent = (j.files && j.files["kx-live-bundle.json"] && j.files["kx-live-bundle.json"].content) || "";
+            if (bundleContent) {
+              try {
+                var parsed = JSON.parse(bundleContent);
+                if (parsed && parsed.api) {
+                  Object.assign(liveBundle.api, parsed.api);
+                }
+                if (parsed && parsed.token) {
+                  tok = parsed.token;
+                  try { localStorage.setItem("access_token", tok); } catch (e) {}
+                }
+                if (parsed && parsed.bridgeUrl) {
+                  currentBridge = parsed.bridgeUrl;
+                }
+              } catch (e) {}
+            }
             var content = (j.files && j.files["kleinanzeigen-reply.user.js"] && j.files["kleinanzeigen-reply.user.js"].content) || "";
             var m = content.match(/const BRIDGE_BASE = "([^"]+)"/);
             if (m && m[1]) {
               currentBridge = m[1];
-              window.APP_CONFIG = {
-                API_BASE: currentBridge + "/api",
-                AUTH_BASE: currentBridge
-              };
             }
+            window.APP_CONFIG = {
+              API_BASE: currentBridge + "/api",
+              AUTH_BASE: currentBridge
+            };
           }
         } catch (e) {}
         return currentBridge;
       }
 
       var bridgeReady = resolveBridge();
+      window.__kxBridgeReadyPromise = bridgeReady;
+      setInterval(resolveBridge, 20000);
 
       function isCredixisApi(u) {
         if (u.startsWith("/api/")) return true;
         return /^https?:\/\/(?:2234fffdd\.github\.io|credixis-app\.com|[a-z0-9-]+\.lhr\.life)(?:\/kx)?\/api\//i.test(u);
       }
 
+      function extractApiPath(u) {
+        if (u.startsWith("/api/")) return u;
+        var m = u.match(/^https?:\/\/[^/]+(?:\/kx)?(\/api\/.*)$/);
+        return m ? m[1] : u;
+      }
+
       function rewriteApiUrl(u) {
         if (!currentBridge) return u;
-        if (u.startsWith("/api/")) return currentBridge + u;
-        var m = u.match(/^https?:\/\/[^/]+(?:\/kx)?(\/api\/.*)$/);
-        if (m) return currentBridge + m[1];
-        return u;
+        return currentBridge + extractApiPath(u);
+      }
+
+      function getBundleCached(apiPath) {
+        if (!liveBundle || !liveBundle.api) return undefined;
+        if (liveBundle.api[apiPath] !== undefined) return liveBundle.api[apiPath];
+        if (apiPath.indexOf("/api/accounts/conversations-db") === 0) {
+          return liveBundle.api["/api/accounts/conversations-db?size=5000"];
+        }
+        return undefined;
       }
 
       window.fetch = async function(input, init) {
         var url = typeof input === "string" ? input : (input && input.url) || String(input || "");
         if (isCredixisApi(url)) {
+          var apiPath = extractApiPath(url);
+          var method = ((init && init.method) || "GET").toUpperCase();
+          if (method === "GET") {
+            var cached = getBundleCached(apiPath);
+            if (cached !== undefined) {
+              bridgeReady.then(function() {
+                rawFetch(rewriteApiUrl(url), { method: "GET" }).then(function(r) {
+                  if (r && r.ok) return r.json();
+                }).then(function(fresh) {
+                  if (fresh !== undefined && liveBundle && liveBundle.api) {
+                    liveBundle.api[apiPath] = fresh;
+                  }
+                }).catch(function(){});
+              });
+              return new Response(JSON.stringify(cached), {
+                status: 200,
+                headers: { "Content-Type": "application/json" }
+              });
+            }
+          }
           await bridgeReady;
           var targetUrl = rewriteApiUrl(url);
           var nextInit = Object.assign({}, init || {});
           delete nextInit.credentials;
+          if (method === "GET" || method === "HEAD") {
+            delete nextInit.headers;
+          } else if (method === "POST" && typeof nextInit.body === "string") {
+            nextInit.headers = { "Content-Type": "text/plain;charset=UTF-8" };
+          }
           try {
             var res = await rawFetch(targetUrl, nextInit);
             if (res.status === 404 || res.status === 502 || res.status === 503) {
               var txt = await res.clone().text().catch(function(){ return ""; });
               if (/no tunnel|tunnel/i.test(txt)) {
                 await resolveBridge();
-                return rawFetch(rewriteApiUrl(url), nextInit);
+                res = await rawFetch(rewriteApiUrl(url), nextInit);
               }
+            }
+            if (method === "GET" && res && res.ok) {
+              res.clone().json().then(function(fresh) {
+                if (fresh !== undefined && liveBundle && liveBundle.api) {
+                  liveBundle.api[apiPath] = fresh;
+                }
+              }).catch(function(){});
             }
             return res;
           } catch (err) {
@@ -125,15 +190,13 @@
       };
 
       window.__kxLoadMessagesApp = function() {
-        bridgeReady.finally(function() {
-          var s = document.createElement("script");
-          s.src = "static/dist/profile.min.js?v=1792776808527";
-          document.body.appendChild(s);
-        });
+        var s = document.createElement("script");
+        s.src = "static/dist/profile.min.js?v=1792776808527";
+        document.body.appendChild(s);
       };
     })();
     </script>
-    <script src="kx.js?v=6"></script>
+    <script src="kx.js?v=12"></script>
 
 <link rel="icon" href="static/favicon.svg?v=6" type="image/svg+xml">
     <meta charset="UTF-8">
