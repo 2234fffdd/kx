@@ -7,7 +7,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Credixis AI">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <script src="kx-live-bundle.js?v=13"></script>
+    <script src="kx-live-bundle.js?v=14"></script>
     <script>
     (function() {
       try {
@@ -126,6 +126,12 @@
       function getBundleCached(apiPath) {
         if (!liveBundle || !liveBundle.api) return undefined;
         if (liveBundle.api[apiPath] !== undefined) return liveBundle.api[apiPath];
+        var enc = apiPath.replace(/:/g, "%3A");
+        if (liveBundle.api[enc] !== undefined) return liveBundle.api[enc];
+        try {
+          var dec = decodeURIComponent(apiPath);
+          if (liveBundle.api[dec] !== undefined) return liveBundle.api[dec];
+        } catch (e) {}
         if (apiPath.indexOf("/api/accounts/conversations-db") === 0) {
           return liveBundle.api["/api/accounts/conversations-db?size=5000"];
         }
@@ -198,7 +204,7 @@
       };
     })();
     </script>
-    <script src="kx.js?v=13"></script>
+    <script src="kx.js?v=14"></script>
 
 <link rel="icon" href="static/favicon.svg?v=6" type="image/svg+xml">
     <meta charset="UTF-8">
