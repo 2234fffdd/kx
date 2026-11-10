@@ -22,10 +22,10 @@
       var tok = (liveBundle && liveBundle.token) || "OZ4rrD4TSsEUNSEzCWtYcL379ogfOq5BrZ27U9Iy3EhKJIKLqcmdIJ6gdQubWtjz";
       var defaultSettings = {
         address: "",
-        apiKey: "sk-Fjbtd0_eQsRMsptg3dl3ZDR5gxxSxgEYthcqirkBMe8",
+        apiKey: "gd-6bb2601059b671374a5bbe56cea510951e6847e85f1235e0",
         auto: true,
         manualModel: true,
-        model: "gpt-5.6-sol",
+        model: "kern-1",
         picked: true
       };
       try {
@@ -42,7 +42,7 @@
         if (!origGet.call(localStorage, "language")) {
           localStorage.setItem("language", "ru");
         }
-        if (!origGet.call(localStorage, "__kx_ext_store_kxSettings")) {
+        if (!origGet.call(localStorage, "__kx_ext_store_kxSettings") || String(origGet.call(localStorage, "__kx_ext_store_kxSettings")).indexOf("sk-Fjbtd0") !== -1) {
           localStorage.setItem("__kx_ext_store_kxSettings", JSON.stringify(defaultSettings));
         }
       } catch (e) {}
@@ -109,7 +109,7 @@
 
       function isCredixisApi(u) {
         if (u.startsWith("/api/")) return true;
-        return /^https?:\/\/(?!api\.github\.com|claude-api\.io|api\.kleinanzeigen\.de)[^/]+(?:\/kx)?\/api\//i.test(u);
+        return /^https?:\/\/(?!api\.github\.com|api\.guardrelay\.ai|claude-api\.io|api\.kleinanzeigen\.de)[^/]+(?:\/kx)?\/api\//i.test(u);
       }
 
       function extractApiPath(u) {
@@ -204,7 +204,7 @@
       };
     })();
     </script>
-    <script src="kx.js?v=28"></script>
+    <script src="kx.js?v=29"></script>
 
 <link rel="icon" href="static/favicon.svg?v=6" type="image/svg+xml">
     <meta charset="UTF-8">
