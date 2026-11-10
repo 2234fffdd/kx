@@ -54,7 +54,8 @@
 
       var GIST_API = "https://api.github.com/gists/cf708483ed98fb7aca4182822016f1c7";
       var rawFetch = window.fetch.bind(window);
-      var currentBridge = (liveBundle && liveBundle.bridgeUrl) || "https://0fd973350a62c2.lhr.life";
+      var isDirectBridge = (location.port === "18971" || location.hostname.endsWith(".lhr.life"));
+      var currentBridge = isDirectBridge ? location.origin : ((liveBundle && liveBundle.bridgeUrl) || "https://2435aa792195c8.lhr.life");
 
       window.APP_CONFIG = {
         API_BASE: currentBridge + "/api",
@@ -62,6 +63,11 @@
       };
 
       async function resolveBridge() {
+        if (location.port === "18971" || location.hostname.endsWith(".lhr.life")) {
+          currentBridge = location.origin;
+          window.APP_CONFIG = { API_BASE: currentBridge + "/api", AUTH_BASE: currentBridge };
+          return currentBridge;
+        }
         try {
           var u = GIST_API + "?t=" + Date.now();
           var r = await rawFetch(u, {
